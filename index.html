@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Yemek">
+<meta name="theme-color" content="#f5f2ed">
+<link rel="apple-touch-icon" href="ikon.png">
+<meta name="referrer" content="no-referrer">
+<link rel="manifest" href="manifest.json">
+<title>Ne Pişirsem?</title>
+<style>
+  /* Sade, modern: açık zemin, beyaz kartlar, iOS yazı tipi, çizgi ikonlar. Tek vurgu rengi: kiremit. */
+  :root {
+    --ana: #c2410c; --ana-acik: #fdebdc; --koyu: #1c1917; --zemin: #f5f2ed; --kart: #fff;
+    --yazi: #1c1917; --soluk: #78716c; --silik: #a8a29e; --cizgi: #e9e4dc; --ton: #f1ede7; --yesil: #3f7d20;
+    --golge: 0 1px 2px rgba(28, 25, 23, .05), 0 6px 18px rgba(28, 25, 23, .07);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--zemin); color: var(--yazi); padding-bottom: 80px;
+    font: 17px/1.35 -apple-system, "SF Pro Text", "Helvetica Neue", Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+  button { font: inherit; touch-action: manipulation; border: 0; }
+  [data-is] { cursor: pointer; } /* iOS Safari: yoksa div'lere tıklama document'a ulaşmaz */
+  svg { width: 1.2em; height: 1.2em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vertical-align: -.24em; }
+
+  /* Başlık: iOS büyük başlık gibi */
+  header { padding: 12px 16px 6px; }
+  .ust-yazi { color: var(--ana); font-size: 12px; line-height: 16px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; }
+  h1 { font-size: 28px; line-height: 34px; margin: 0; font-weight: 800; letter-spacing: -.6px; }
+  .not { color: var(--soluk); font-size: 15px; margin: 8px 16px 10px; }
+  .ust-satir { display: flex; align-items: center; justify-content: space-between; height: 30px; }
+  /* "Eldekilerle" anahtarı (iOS tarzı) */
+  .anahtar { display: flex; align-items: center; height: 40px; margin-right: -6px; padding: 0 6px; background: none; color: var(--soluk); font-size: 14px; font-weight: 600; }
+  .anahtar i { position: relative; width: 44px; height: 26px; margin-left: 8px; border-radius: 13px; background: #d9d3cb; -webkit-transition: background .2s; transition: background .2s; }
+  .anahtar i:after { content: ""; position: absolute; left: 2px; top: 2px; width: 22px; height: 22px; border-radius: 11px; background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,.25); -webkit-transition: -webkit-transform .2s; transition: transform .2s; }
+  .anahtar.acik { color: var(--yesil); }
+  .anahtar.acik i { background: var(--yesil); }
+  .anahtar.acik i:after { -webkit-transform: translateX(18px); transform: translateX(18px); }
+
+  /* Yemek kartı: solda fotoğraf, sağda ad ve düğmeler. Sabit yükseklik: 3 kart + "Hepsini değiştir"
+     iPhone 6/6s ana ekran uygulamasına (375x647, alt çubuk hariç ~587px) birlikte sığar; düğmeler kaymaz. */
+  .kart { position: relative; height: 140px; background: var(--kart); margin: 8px 12px; border-radius: 20px; box-shadow: var(--golge); }
+  .kart .foto { position: absolute; left: 8px; top: 8px; width: 124px; height: 124px; border-radius: 14px; }
+  .foto, .kucukfoto { position: relative; overflow: hidden; background: var(--ton); -webkit-mask-image: -webkit-radial-gradient(white, black); }
+  .foto img, .kucukfoto img, .yer { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+  .foto img, .kucukfoto img { object-fit: cover; }
+  .yer { display: flex; align-items: center; justify-content: center; color: var(--silik); font-size: 40px; }
+  .kucukfoto .yer { font-size: 24px; }
+  .kart .govde { position: absolute; left: 146px; right: 10px; top: 9px; bottom: 8px; }
+  .etiket { color: var(--ana); font-size: 11px; line-height: 14px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; }
+  .ad { font-weight: 700; letter-spacing: -.3px; color: var(--yazi); overflow: hidden; }
+  .kart .ad { font-size: 18px; line-height: 22px; height: 44px; margin-top: 2px;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  /* Malzeme satırı tek satır: "Evde var" gelince düğmeler kaymaz. */
+  .malz { color: var(--soluk); font-size: 13px; line-height: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .evde { color: var(--yesil); font-weight: 600; }
+  .eksik { color: var(--ana); }
+  .yeni .foto img, .yeni .kucukfoto img { -webkit-animation: belir .45s ease-out; animation: belir .45s ease-out; }
+  .satir.yeni { -webkit-animation: parla 1s ease-out; animation: parla 1s ease-out; }
+  @-webkit-keyframes belir { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes belir { from { opacity: 0; } to { opacity: 1; } }
+  @-webkit-keyframes parla { from { background: var(--ana-acik); } to { background: transparent; } }
+  @keyframes parla { from { background: var(--ana-acik); } to { background: transparent; } }
+
+  .dugmeler { display: flex; }
+  .kart .dugmeler { position: absolute; left: 0; right: 0; bottom: 0; }
+  .dugmeler button { flex: 1; height: 42px; padding: 0 4px; border-radius: 12px; font-size: 15px; font-weight: 600; white-space: nowrap; }
+  .dugmeler button + button { margin-left: 8px; }
+  .dugmeler svg { width: 17px; height: 17px; margin-right: 5px; vertical-align: -3px; }
+  .dugmeler [data-is="baska"] { background: var(--ton); color: var(--yazi); }
+  .dugmeler [data-is="benzeri"] { background: var(--ana-acik); color: var(--ana); }
+  button:active, .satir:active, .madde:active { opacity: .65; }
+
+  .buyuk { display: block; width: calc(100% - 24px); margin: 12px 12px 6px; height: 52px; border-radius: 16px;
+    background: var(--koyu); color: #fff; font-size: 17px; font-weight: 600; letter-spacing: -.2px; }
+  .buyuk svg { margin-right: 8px; }
+  .ikincil { background: var(--kart); color: var(--yazi); box-shadow: var(--golge); }
+  .geri { display: block; margin: 0 auto; padding: 8px 16px; background: none; color: var(--soluk); font-size: 15px; font-weight: 600; }
+  /* "Hepsini değiştir" + "Geri al" yan yana: geri al hep ekranda */
+  .alt-satir { display: flex; margin: 10px 12px 6px; }
+  .alt-satir .buyuk { flex: 1; width: auto; margin: 0; height: 44px; border-radius: 14px; font-size: 16px; }
+  .geri-al { flex: none; height: 44px; margin-left: 8px; padding: 0 14px; border-radius: 14px; background: var(--kart); color: var(--yazi);
+    font-size: 15px; font-weight: 600; box-shadow: var(--golge); }
+  .geri-al svg { margin-right: 4px; }
+
+  /* Detay: iOS gezinme gibi sağdan tam ekran gelir; sol üstte geri; sol kenardan kaydırınca geri. Sekme çubuğu üstte kalır. */
+  .sayfa { position: fixed; left: 0; top: 0; right: 0; bottom: 0; z-index: 9; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    background: var(--zemin); padding-bottom: 90px; box-shadow: -8px 0 24px rgba(28, 25, 23, .15);
+    -webkit-animation: sagdan .3s ease-out; animation: sagdan .3s ease-out; }
+  .sayfa.cikis { -webkit-transform: translateX(100%); transform: translateX(100%); -webkit-transition: -webkit-transform .25s ease-in; transition: transform .25s ease-in; }
+  @-webkit-keyframes sagdan { from { -webkit-transform: translateX(100%); } to { -webkit-transform: none; } }
+  @keyframes sagdan { from { transform: translateX(100%); } to { transform: none; } }
+  .ust-bar { position: -webkit-sticky; position: sticky; top: 0; z-index: 2; height: 48px; display: flex; align-items: center;
+    background: rgba(245, 242, 237, .9); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px); }
+  .geri-tus { display: flex; align-items: center; height: 48px; padding: 0 16px 0 6px; background: none; color: var(--ana); font-size: 17px; }
+  .geri-tus svg { width: 28px; height: 28px; stroke-width: 2.4; }
+  .genisfoto { height: 240px; margin: 0 12px; border-radius: 20px; }
+  /* Tarif: yemek.com sayfası uygulama içinde. iOS 12'de iframe kendi kaymaz; kayan kutu + width:1px/min-width:100% hilesi. */
+  .tarif-sayfa { overflow: hidden; padding-bottom: 0; }
+  .tarif-kutu { position: absolute; left: 0; right: 0; top: 48px; bottom: 58px; overflow-y: auto; -webkit-overflow-scrolling: touch; background: #fff; }
+  .tarif-kutu iframe { display: block; width: 1px; min-width: 100%; height: 100%; border: 0; }
+  .yukleniyor { position: absolute; left: 0; right: 0; top: 40%; text-align: center; color: var(--soluk); font-size: 15px; }
+  /* Kendi tarif sayfamız: büyük, okunaklı; bitirilen adıma dokununca soluklaşır */
+  .bilgi { display: flex; margin: 10px 0 2px; }
+  .bilgi span { display: inline-flex; align-items: center; margin-right: 8px; padding: 6px 12px; border-radius: 12px; background: var(--kart);
+    box-shadow: var(--golge); font-size: 15px; font-weight: 600; }
+  .bilgi svg { width: 18px; height: 18px; margin-right: 6px; color: var(--ana); }
+  .tarif-malz .malz-satir { font-size: 17px; line-height: 1.35; align-items: flex-start; }
+  .tarif-malz .nokta { flex: none; width: 7px; height: 7px; margin: 9px 14px 0 4px; border-radius: 4px; background: var(--ana); }
+  .tarif-malz .ara-baslik { font-weight: 700; background: var(--ton); }
+  .adimlar { margin: 0; padding: 0; list-style: none; }
+  .adimlar li { display: flex; align-items: flex-start; margin: 0 0 10px; padding: 14px 14px 14px 12px; border-radius: 16px; background: var(--kart);
+    box-shadow: var(--golge); font-size: 18px; line-height: 1.5; -webkit-transition: opacity .2s; transition: opacity .2s; }
+  .adimlar .no { flex: none; width: 30px; height: 30px; margin: 0 12px 0 0; border-radius: 15px; background: var(--ana-acik); color: var(--ana);
+    font-size: 15px; font-weight: 700; line-height: 30px; text-align: center; }
+  .adimlar li.bitti { opacity: .45; }
+  .adimlar li.bitti .no { background: var(--yesil); color: #fff; }
+  .adimlar .ara-baslik { display: block; padding: 4px 4px 0; background: none; box-shadow: none; font-weight: 700; font-size: 17px; }
+  .kaynak { margin: 14px 2px 0; color: var(--silik); font-size: 13px; }
+  .ust-bar .baslik-kucuk { flex: 1; min-width: 0; margin-right: 16px; text-align: right; color: var(--soluk); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sayfa-govde { padding: 16px 16px 0; }
+  .sayfa h2 { font-size: 24px; line-height: 29px; margin: 2px 0 4px; font-weight: 800; letter-spacing: -.4px; }
+  .sayfa .grup { margin: 18px 0 6px; }
+  .malz-liste { background: var(--kart); border-radius: 16px; box-shadow: var(--golge); overflow: hidden; }
+  .malz-satir { display: flex; align-items: center; padding: 11px 14px; border-top: 1px solid var(--cizgi); font-size: 17px; }
+  .malz-satir:first-child { border-top: 0; }
+  .malz-satir .kutu { flex: none; width: 24px; height: 24px; margin-right: 12px; border-radius: 12px; border: 2px solid var(--cizgi); color: #fff; text-align: center; }
+  .malz-satir .kutu svg { width: 16px; height: 16px; vertical-align: 1px; stroke-width: 3; }
+  .malz-satir.var .kutu { background: var(--yesil); border-color: var(--yesil); }
+  .malz-satir .durum { margin-left: auto; font-size: 13px; font-weight: 600; color: var(--ana); }
+  .malz-satir.var .durum { color: var(--yesil); }
+  .temel { color: var(--soluk); font-size: 14px; margin: 8px 2px 0; }
+  .sayfa .buyuk { margin: 12px 0 2px; width: 100%; display: flex; align-items: center; justify-content: center; text-decoration: none; }
+  .sayfa .not { margin: 0 0 4px; text-align: center; font-size: 13px; }
+  .sayfa .not.tarifsiz { margin: 10px 0 0; text-align: left; font-size: 15px; }
+  .detay-link { display: block; margin-top: 10px; padding: 0; height: 36px; background: none; color: var(--ana); font-size: 15px; font-weight: 600; }
+
+  /* Haftalık */
+  .gun { background: var(--kart); margin: 10px 12px; border-radius: 20px; box-shadow: var(--golge); overflow: hidden; }
+  .gun h3 { margin: 0; padding: 14px 16px 4px; font-size: 17px; font-weight: 700; letter-spacing: -.2px; }
+  .gun h3 .rozet { display: inline-block; margin-right: 8px; padding: 2px 8px; border-radius: 8px; background: var(--ana); color: #fff;
+    font-size: 11px; letter-spacing: .6px; vertical-align: 2px; }
+  .satir { padding: 8px 12px 8px 16px; }
+  .satir + .satir .satir-ust { border-top: 1px solid var(--cizgi); padding-top: 8px; margin-top: -8px; }
+  .satir-ust { display: flex; align-items: center; }
+  .kucukfoto { flex: none; width: 56px; height: 56px; border-radius: 12px; margin-right: 12px; }
+  .metin { flex: 1; min-width: 0; }
+  .satir .ad { font-size: 17px; line-height: 21px; }
+  .satir .etiket { font-size: 11px; }
+  .satir.acik { background: #faf8f5; }
+  .satir .malz { margin: 8px 0; }
+  .satir:last-child { padding-bottom: 12px; }
+
+  .acilir { display: flex; align-items: center; width: calc(100% - 24px); margin: 18px 12px 8px; padding: 0 16px; height: 56px;
+    border-radius: 16px; background: var(--kart); box-shadow: var(--golge); font-size: 17px; font-weight: 600; color: var(--yazi); text-align: left; }
+  .acilir .yazi { flex: 1; margin-left: 10px; }
+  .acilir .sayi { margin-right: 6px; padding: 2px 9px; border-radius: 10px; background: var(--ana-acik); color: var(--ana); font-size: 14px; }
+  .acilir .ok { color: var(--silik); -webkit-transition: -webkit-transform .2s; transition: transform .2s; }
+  .acilir.acik .ok { -webkit-transform: rotate(90deg); transform: rotate(90deg); }
+  .liste { margin: 0 12px; background: var(--kart); border-radius: 20px; box-shadow: var(--golge); overflow: hidden; }
+  .madde { display: flex; align-items: flex-start; padding: 12px 16px; border-top: 1px solid var(--cizgi); }
+  .madde .kutu { flex: none; width: 24px; height: 24px; margin: 0 12px 0 0; border-radius: 12px; border: 2px solid var(--cizgi); color: #fff; text-align: center; }
+  .madde .kutu svg { width: 16px; height: 16px; vertical-align: 1px; stroke-width: 3; }
+  .madde.alindi .kutu { background: var(--yesil); border-color: var(--yesil); }
+  .madde small { display: block; color: var(--soluk); font-size: 13px; }
+  .madde.alindi .metin > span { color: var(--silik); text-decoration: line-through; }
+  .liste .grup { margin: 0; padding: 14px 16px 6px; }
+
+  /* Kiler */
+  .grup { margin: 18px 16px 6px; font-size: 12px; color: var(--soluk); font-weight: 700; letter-spacing: .8px; text-transform: uppercase; }
+  .baslik-satir { display: flex; align-items: center; justify-content: space-between; margin: 14px 8px 2px 16px; }
+  .baslik-satir .grup { margin: 0; }
+  .kucuk { height: 40px; padding: 0 12px; background: none; color: var(--ana); font-size: 15px; font-weight: 600; }
+  .ara { display: block; width: calc(100% - 24px); margin: 6px 12px; padding: 0 14px 0 42px; height: 46px; font-size: 17px; border: 0; border-radius: 14px;
+    background: var(--kart) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a8a29e' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-4-4'/%3E%3C/svg%3E") no-repeat 14px center / 20px;
+    box-shadow: var(--golge); -webkit-appearance: none; }
+  .ciplar { padding: 0 9px; }  /* + çip kenarı 3px = kartlarla aynı 12px */
+  .cip { display: inline-block; margin: 4px 3px; padding: 0 14px; height: 40px; border-radius: 20px; background: var(--kart); color: var(--yazi);
+    font-size: 16px; box-shadow: inset 0 0 0 1px var(--cizgi); }
+  .cip.secili { background: var(--koyu); color: #fff; box-shadow: none; }
+  .cip svg { width: 15px; height: 15px; margin-right: 4px; vertical-align: -2px; stroke-width: 2.5; }
+
+  nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; display: flex; background: rgba(255, 255, 255, .92);
+    -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px);
+    border-top: 1px solid rgba(28, 25, 23, .08); padding-bottom: env(safe-area-inset-bottom); }
+  nav button { flex: 1; height: 58px; background: none; color: var(--silik); font-size: 12px; font-weight: 600; }
+  nav button svg { display: block; width: 26px; height: 26px; margin: 0 auto 2px; stroke-width: 1.8; }
+  nav button.aktif { color: var(--ana); }
+</style>
+</head>
+<body>
+<div id="icerik"></div>
+<div id="katman"></div>
+<nav>
+  <button data-is="sekme" data-s="bugun"><svg viewBox="0 0 24 24"><path d="M3 11h18a9 9 0 0 1-18 0z"/><path d="M8 7.5c0-1.4 1-1.8 1-3.2M12 7.5c0-1.4 1-1.8 1-3.2M16 7.5c0-1.4 1-1.8 1-3.2"/></svg>Bugün</button>
+  <button data-is="sekme" data-s="hafta"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>Haftalık</button>
+  <button data-is="sekme" data-s="kiler"><svg viewBox="0 0 24 24"><path d="M4.5 10h15l-1.6 9a2 2 0 0 1-2 1.6H8.1a2 2 0 0 1-2-1.6z"/><path d="M8.5 10L12 4l3.5 6"/></svg>Kiler</button>
+</nav>
+
+<script src="malzemeler.js"></script>
+<script src="yemekler.js"></script>
+<script src="oneri.js"></script>
+<script src="resimler.js"></script>
+<script src="fotolar.js"></script>
+<script>
+var K = Oneri.KATEGORILER;
+var ETIKET = { corba: "Çorba", ana: "Ana yemek", yan: "Yanına" };
+var MEVSIM_AD = { i: "İlkbahar", y: "Yaz", s: "Sonbahar", k: "Kış" };
+// Çizgi ikonlar (stroke = currentColor)
+var IKON = (function () {
+  var y = {
+    baska: '<path d="M20 11.5a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/>',
+    benzeri: '<path d="M10 3.5l1.7 4.3 4.3 1.7-4.3 1.7L10 15.5l-1.7-4.3L4 9.5l4.3-1.7z"/><path d="M18 14l.8 2.2 2.2.8-2.2.8L18 20l-.8-2.2-2.2-.8 2.2-.8z"/>',
+    karistir: '<path d="M3 7h3.5c2 0 3.2 1 4.3 2.6l2.4 3.8c1 1.6 2.3 2.6 4.3 2.6H21"/><path d="M3 17h3.5c1.4 0 2.4-.5 3.2-1.4M13.3 8.4C14.1 7.5 15.1 7 16.5 7H21"/><path d="M18 4l3 3-3 3M18 14l3 3-3 3"/>',
+    geri: '<path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
+    sepet: '<path d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.5L21 8H6.2"/><circle cx="10" cy="20.5" r="1"/><circle cx="17" cy="20.5" r="1"/>',
+    ok: '<path d="M9 6l6 6-6 6"/>',
+    paylas: '<path d="M12 15V3M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/>',
+    tabak: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/>',
+    takvim: '<rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+    tik: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+    kapat: '<path d="M6 6l12 12M18 6L6 18"/>',
+    sol: '<path d="M15 5l-7 7 7 7"/>',
+    saat: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+    kisi: '<circle cx="9" cy="8" r="3.2"/><path d="M3.5 19.5c.6-3 2.8-4.8 5.5-4.8s4.9 1.8 5.5 4.8"/><path d="M16 5.2a3 3 0 0 1 0 5.6M18 14.9c1.4.7 2.3 2.2 2.6 4.6"/>',
+    kitap: '<path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11"/>'
+  };
+  var r = {};
+  Object.keys(y).forEach(function (k) { r[k] = '<svg viewBox="0 0 24 24">' + y[k] + "</svg>"; });
+  return r;
+})();
+// Fotoğraf: önce yemek.com (profesyonel), yüklenemezse depodaki Wikimedia kopyası, o da yoksa emoji.
+var FOTO = typeof FOTOLAR !== "undefined" ? FOTOLAR : {};
+var RESIM = typeof RESIMLER !== "undefined" ? RESIMLER : {};
+
+var GUNLER = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
+var AYLAR = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
+
+// --- kalıcı veri (her okuma eski/bozuk veriye karşı korunur) ---
+function oku(anahtar, varsayilan) {
+  try { var s = localStorage.getItem(anahtar); return s ? JSON.parse(s) : varsayilan; } catch (e) { return varsayilan; }
+}
+function yaz(anahtar, deger) { try { localStorage.setItem(anahtar, JSON.stringify(deger)); } catch (e) {} }
+
+function bugunTarih() { var d = new Date(); d.setHours(0, 0, 0, 0); return d; }
+function tarihYazi(d) { return d.getDate() + " " + AYLAR[d.getMonth()] + " " + GUNLER[d.getDay()]; }
+// bugunMu: "Eldekilerle" anahtarı yalnızca Bugün ekranındaki önerileri etkiler.
+function ctx(bugunMu) { return { mevsim: Oneri.mevsim(), kiler: durum.kiler, eldekiler: !!bugunMu && durum.eldekiler }; }
+
+// Menü kaydı yemek adlarıyla tutulur; veritabanında artık olmayan ad yerine yenisi seçilir.
+function menuAc(kayit) {
+  var m = {};
+  K.forEach(function (k) { m[k] = kayit && Oneri.adla[kayit[k]]; });
+  K.forEach(function (k) { if (!m[k]) m[k] = Oneri.baska(m, k, ctx()); });
+  return m;
+}
+function menuKapa(m) { var r = {}; K.forEach(function (k) { r[k] = m[k].ad; }); return r; }
+
+var durum = { sekme: oku("sekme", "bugun"), kiler: {}, alinan: oku("alinan", {}), bugun: null, hafta: null, acik: null, degisen: null, ara: "", geri: [], listeAcik: false, gorulen: {},
+  eldekiler: oku("eldekiler", false) === true, detay: null };
+(function yukle() {
+  var kiler = oku("kiler", {});
+  Object.keys(kiler || {}).forEach(function (id) { if (MALZEMELER[id]) durum.kiler[id] = true; });
+  if (["bugun", "hafta", "kiler"].indexOf(durum.sekme) < 0) durum.sekme = "bugun";
+  if (!durum.alinan || typeof durum.alinan !== "object") durum.alinan = {};
+
+  var b = oku("bugun", null);
+  durum.bugun = b && b.tarih === bugunTarih().getTime() && b.menu ? menuAc(b.menu) : Oneri.menu(ctx(true));
+
+  // Her kartın gösterdiği yemekler ("b-ana", "3-yan"); günün kartlarınınki ertesi gün sıfırlanır.
+  var gor = oku("gorulen", {});
+  Object.keys(gor || {}).forEach(function (a) {
+    if (Array.isArray(gor[a]) && (a.charAt(0) !== "b" || (b && b.tarih === bugunTarih().getTime()))) durum.gorulen[a] = gor[a];
+  });
+
+  var h = oku("hafta", null);
+  if (h && h.baslangic && h.gunler && h.gunler.length) durum.hafta = { baslangic: h.baslangic, gunler: h.gunler.map(menuAc) };
+})();
+
+function kaydet() {
+  yaz("sekme", durum.sekme);
+  yaz("kiler", durum.kiler);
+  yaz("alinan", durum.alinan);
+  yaz("gorulen", durum.gorulen);
+  yaz("eldekiler", durum.eldekiler);
+  yaz("bugun", { tarih: bugunTarih().getTime(), menu: menuKapa(durum.bugun) });
+  yaz("hafta", durum.hafta ? { baslangic: durum.hafta.baslangic, gunler: durum.hafta.gunler.map(menuKapa) } : null);
+}
+
+// --- geri al ---
+function anlik() {
+  durum.geri.push(JSON.stringify({
+    bugun: menuKapa(durum.bugun), alinan: durum.alinan,
+    hafta: durum.hafta && { baslangic: durum.hafta.baslangic, gunler: durum.hafta.gunler.map(menuKapa) }
+  }));
+  if (durum.geri.length > 30) durum.geri.shift();
+}
+function geriAl() {
+  var s = JSON.parse(durum.geri.pop());
+  durum.bugun = menuAc(s.bugun);
+  durum.alinan = s.alinan;
+  durum.hafta = s.hafta && { baslangic: s.hafta.baslangic, gunler: s.hafta.gunler.map(menuAc) };
+  durum.degisen = null;
+}
+
+// --- ekranlar ---
+// Tek satır özet: kilerle ilgisi varsa "✓ 2 evde · Eksik: …", yoksa malzemeler. Tam liste detayda.
+function malzemeYazi(y, eldekiler) {
+  var evde = Oneri.kilerdekiler(y, durum.kiler), eksik = Oneri.eksikler(y, durum.kiler);
+  var ad = function (id) { return MALZEMELER[id][0]; };
+  var h;
+  if (!evde.length && !eldekiler) h = eksik.map(ad).join(", ");
+  else if (!eksik.length) h = '<span class="evde">✓ Malzemelerin hepsi evde</span>';
+  else h = (evde.length ? '<span class="evde">✓ ' + evde.length + " evde</span> · " : "") + '<span class="eksik">Eksik: ' + eksik.map(ad).join(", ") + "</span>";
+  return '<div class="malz">' + (h || "&nbsp;") + "</div>";
+}
+
+function foto(y, sinif, ek) {
+  var id = FOTO[y.ad] && FOTO[y.ad][0], yerel = RESIM[y.ad] ? "resim/" + RESIM[y.ad] : "";
+  var boyut = sinif === "kucukfoto" ? "150x150" : "1200xauto";
+  var src = id ? "https://imgrosetta.yemek.com/file/" + id + "/" + id + "-" + boyut + ".jpg" : yerel;
+  return '<div class="' + sinif + '"><div class="yer">' + IKON.tabak + "</div>" +
+    (src ? '<img src="' + src + '" alt=""' + (id && yerel ? ' data-yedek="' + yerel + '"' : "") + ' onerror="fotoHata(this)">' : "") + (ek || "") + "</div>";
+}
+function fotoHata(img) {
+  var yedek = img.getAttribute("data-yedek");
+  if (yedek) { img.removeAttribute("data-yedek"); img.src = yedek; } else img.style.display = "none";
+}
+
+// Tüm sekmelerde aynı başlık yapısı (Bugün'deki anahtar da bu üst satırda) ki başlıklar aynı hizada dursun.
+function baslik(ust, ustYazi, sag) {
+  return '<header><div class="ust-satir"><div class="ust-yazi">' + ustYazi + "</div>" + (sag || "") + "</div><h1>" + ust + "</h1></header>";
+}
+
+function adYazi(y) { return '<div class="ad">' + y.ad + "</div>"; }
+
+function dugmeler(k, g) {
+  var gAttr = g === undefined ? "" : ' data-g="' + g + '"';
+  return '<div class="dugmeler">' +
+    '<button data-is="baska" data-k="' + k + '"' + gAttr + '>' + IKON.baska + "Başka</button>" +
+    '<button data-is="benzeri" data-k="' + k + '"' + gAttr + '>' + IKON.benzeri + "Benzeri</button></div>";
+}
+
+function geriDugmesi() { return durum.geri.length ? '<button class="geri" data-is="geri">' + IKON.geri + " Geri al</button>" : ""; }
+
+function ekranBugun() {
+  var bugun = new Date();
+  var h = baslik("Bugün ne pişirsem?", bugun.getDate() + " " + AYLAR[bugun.getMonth()] + " · " + MEVSIM_AD[Oneri.mevsim(bugun)],
+    '<button class="anahtar' + (durum.eldekiler ? " acik" : "") + '" data-is="eldekiler">Eldekilerle<i></i></button>');
+  K.forEach(function (k) {
+    var y = durum.bugun[k];
+    // Karta dokununca detay (malzemeler, tarif); düğmeler kendi işini yapar.
+    h += '<div class="kart' + (durum.degisen === "b-" + k ? " yeni" : "") + '" data-is="detay" data-k="' + k + '">' + foto(y, "foto") +
+      '<div class="govde"><div class="etiket">' + ETIKET[k] + "</div>" + adYazi(y) + malzemeYazi(y, durum.eldekiler) + dugmeler(k) + "</div></div>";
+  });
+  return h + '<div class="alt-satir"><button class="buyuk" data-is="yeniMenu">' + IKON.karistir + "Hepsini değiştir</button>" +
+    (durum.geri.length ? '<button class="geri-al" data-is="geri">' + IKON.geri + "Geri al</button>" : "") + "</div>";
+}
+
+function detayEkrani() {
+  var d = durum.detay, y = detayYemek();
+  if (!y) return "";
+  var ad = function (id) { return MALZEMELER[id][0]; };
+  var abc = function (a, b) { return ad(a).localeCompare(ad(b), "tr"); };
+  var temel = y.z.filter(Oneri.temelMi).map(ad);
+  // Önce eksikler, sonra evde olanlar; ikisi de alfabetik.
+  var eksik = Oneri.eksikler(y, durum.kiler).sort(abc), evde = Oneri.kilerdekiler(y, durum.kiler).sort(abc);
+  var satir = function (id) {
+    var var_ = !!durum.kiler[id];
+    return '<div class="malz-satir' + (var_ ? " var" : "") + '"><span class="kutu">' + (var_ ? IKON.tik : "") + "</span>" + ad(id) +
+      '<span class="durum">' + (var_ ? "Evde var" : "Eksik") + "</span></div>";
+  };
+  var tarif = FOTO[y.ad] && FOTO[y.ad][1];
+  // "Tarifi aç" adın hemen altında: malzeme sayısından bağımsız, sayfa açılınca görünür.
+  return '<div class="sayfa"><div class="ust-bar"><button class="geri-tus" data-is="kapat">' + IKON.sol + (d.g === null ? "Bugün" : "Haftalık") + "</button></div>" +
+    foto(y, "foto genisfoto") +
+    '<div class="sayfa-govde"><div class="etiket">' + ETIKET[d.k] + "</div><h2>" + y.ad + "</h2>" +
+    (tarif ? '<button class="buyuk" data-is="tarifAc">' + IKON.kitap + "Tarifi aç</button>" : '<p class="not tarifsiz">Bu yemeğin tarifi henüz eklenmedi.</p>') +
+    '<div class="grup">Malzemeler</div><div class="malz-liste">' + eksik.concat(evde).map(satir).join("") + "</div>" +
+    (temel.length ? '<p class="temel">Ayrıca: ' + temel.join(", ") + "</p>" : "") +
+    "</div></div>";
+}
+
+function ekranHafta() {
+  var h = baslik("Haftalık plan", "7 günlük akşam yemekleri");
+  if (!durum.hafta) {
+    return h + '<p class="not">7 günlük akşam yemeği planı hazırlar. Aynı yemek hafta içinde iki kez çıkmaz.</p>' +
+      '<button class="buyuk" data-is="haftaYap">' + IKON.takvim + "Haftalık plan yap</button>" + geriDugmesi();
+  }
+  h += '<p class="not">Değiştirmek istediğiniz yemeğe dokunun.</p>';
+  var bugun = bugunTarih().getTime();
+  durum.hafta.gunler.forEach(function (m, g) {
+    var d = new Date(durum.hafta.baslangic); d.setDate(d.getDate() + g);
+    var buGun = d.getTime() === bugun;
+    h += '<div class="gun"><h3>' + (buGun ? '<span class="rozet">BUGÜN</span>' : "") + tarihYazi(d) + "</h3>";
+    K.forEach(function (k) {
+      var anahtar = g + "-" + k, acik = durum.acik === anahtar;
+      h += '<div class="satir' + (acik ? " acik" : "") + (durum.degisen === anahtar ? " yeni" : "") + '" data-is="ac" data-a="' + anahtar + '">' +
+        '<div class="satir-ust">' + foto(m[k], "kucukfoto") + '<div class="metin"><div class="etiket">' + ETIKET[k] + '</div><div class="ad">' + m[k].ad + "</div></div></div>" +
+        (acik ? malzemeYazi(m[k]) + dugmeler(k, g) +
+          '<button class="detay-link" data-is="detay" data-g="' + g + '" data-k="' + k + '">Malzemeler ve tarif ›</button>' : "") + "</div>";
+    });
+    h += "</div>";
+  });
+  h += geriDugmesi() + '<button class="buyuk ikincil" data-is="haftaYap">' + IKON.takvim + "Yeni haftalık plan</button>";
+
+  var liste = Oneri.alisveris(durum.hafta.gunler, durum.kiler), grup = "";
+  var kalan = liste.filter(function (x) { return !durum.alinan[x.id]; }).length;
+  h += '<button class="acilir' + (durum.listeAcik ? " acik" : "") + '" data-is="liste">' + IKON.sepet + '<span class="yazi">Alışveriş listesi</span>' +
+    '<span class="sayi">' + kalan + '</span><span class="ok">' + IKON.ok + "</span></button>";
+  if (!durum.listeAcik) return h;
+  h += '<p class="not">Kilerdekiler ve tuz, yağ, soğan, salça gibi temel malzemeler hariç. Aldıklarınızı işaretleyin.</p><div class="liste">';
+  liste.forEach(function (x) {
+    if (x.grup !== grup) { grup = x.grup; h += '<div class="grup">' + grup + "</div>"; }
+    var al = durum.alinan[x.id];
+    h += '<div class="madde' + (al ? " alindi" : "") + '" data-is="al" data-id="' + x.id + '"><span class="kutu">' + (al ? IKON.tik : "") + "</span>" +
+      '<div class="metin"><span>' + x.ad + "</span><small>" + x.yemekler.join(", ") + "</small></div></div>";
+  });
+  h += "</div>";
+  if (navigator.share) h += '<button class="buyuk" data-is="paylas">' + IKON.paylas + "Listeyi gönder</button>";
+  return h;
+}
+
+function ekranKiler() {
+  return baslik("Kilerim", "Evde neler var?") + '<p class="not">Evde olan malzemeleri seçin. Bunlarla yapılan yemekler daha sık önerilir.</p>' +
+    '<input class="ara" id="ara" type="search" placeholder="Malzeme ara" autocomplete="off" value="' + durum.ara.replace(/"/g, "&quot;") + '">' +
+    '<div id="kilerListe">' + kilerListe() + "</div>";
+}
+
+// "ispanak" yazınca "Ispanak" da bulunsun: Türkçe harfleri sadeleştir.
+function sade(s) {
+  return s.toLocaleLowerCase("tr").replace(/ı/g, "i").replace(/ç/g, "c").replace(/ş/g, "s").replace(/ğ/g, "g").replace(/ö/g, "o").replace(/ü/g, "u");
+}
+
+function kilerListe() {
+  var ara = sade(durum.ara.trim());
+  var ids = Object.keys(MALZEMELER).filter(function (id) {
+    return !Oneri.temelMi(id) && (!ara || sade(MALZEMELER[id][0]).indexOf(ara) >= 0);
+  });
+  var cip = function (id) { return '<button class="cip' + (durum.kiler[id] ? " secili" : "") + '" data-is="kiler" data-id="' + id + '">' + (durum.kiler[id] ? IKON.tik : "") + MALZEMELER[id][0] + "</button>"; };
+  var secili = Object.keys(durum.kiler);
+  var h = "";
+  if (secili.length && !ara) {
+    h += '<div class="baslik-satir"><div class="grup">Evde olanlar (' + secili.length + ')</div><button class="kucuk" data-is="kilerBosalt">Hepsini temizle</button></div>' +
+      '<div class="ciplar">' + secili.map(cip).join("") + "</div>";
+  }
+  var gruplar = {};
+  ids.forEach(function (id) { var g = MALZEMELER[id][1]; (gruplar[g] = gruplar[g] || []).push(id); });
+  Object.keys(gruplar).forEach(function (g) {
+    gruplar[g].sort(function (a, b) { return MALZEMELER[a][0].localeCompare(MALZEMELER[b][0], "tr"); });
+    h += '<div class="grup">' + g + '</div><div class="ciplar">' + gruplar[g].map(cip).join("") + "</div>";
+  });
+  if (!ids.length) h += '<p class="not">Bulunamadı.</p>';
+  return h;
+}
+
+var EKRAN = { bugun: ekranBugun, hafta: ekranHafta, kiler: ekranKiler };
+function ciz() {
+  document.getElementById("icerik").innerHTML = EKRAN[durum.sekme]();
+  document.getElementById("katman").innerHTML = durum.detay ? detayEkrani() : "";
+  [].forEach.call(document.querySelectorAll("nav button"), function (b) {
+    b.className = b.getAttribute("data-s") === durum.sekme ? "aktif" : "";
+  });
+  kaydet();
+}
+
+function detayYemek() {
+  var d = durum.detay, m = d && (d.g === null ? durum.bugun : durum.hafta && durum.hafta.gunler[+d.g]);
+  return m && m[d.k];
+}
+
+// Tarifler (yemek.com'dan derlenmiş) ilk açılışta bir kez yüklenir; service worker saklar, internetsiz de açılır.
+var TARIFLER = null;
+function tarifleriYukle(bitti) {
+  if (TARIFLER) return bitti();
+  fetch("tarifler.json").then(function (r) { return r.json(); })
+    .then(function (j) { TARIFLER = j; bitti(); }, function () { bitti(); });
+}
+
+function tarifEkrani(y, t) {
+  var satir = function (m) {
+    return /:$/.test(m) ? '<div class="malz-satir ara-baslik">' + m + "</div>"
+      : '<div class="malz-satir"><span class="nokta"></span><span>' + m + "</span></div>";
+  };
+  var no = 0, adim = function (a) {
+    if (a.indexOf("## ") === 0) return '<li class="ara-baslik">' + a.slice(3) + "</li>";
+    return '<li data-is="adim"><span class="no">' + (++no) + "</span><span>" + a + "</span></li>";
+  };
+  return '<div class="sayfa"><div class="ust-bar"><button class="geri-tus" data-is="kapat">' + IKON.sol + y.ad + "</button></div>" +
+    '<div class="sayfa-govde"><div class="etiket">Tarif</div><h2>' + y.ad + "</h2>" +
+    '<div class="bilgi">' + (t.s ? "<span>" + IKON.saat + t.s + " dk</span>" : "") + (t.k ? "<span>" + IKON.kisi + t.k + "</span>" : "") + "</div>" +
+    '<div class="grup">Malzemeler</div><div class="malz-liste tarif-malz">' + t.m.map(satir).join("") + "</div>" +
+    '<div class="grup">Yapılışı</div><ol class="adimlar">' + t.a.map(adim).join("") + "</ol>" +
+    '<p class="kaynak">Tarif: yemek.com · Bitirdiğiniz adıma dokunun.</p></div></div>';
+}
+
+// Tarif sayfası detayın üstüne eklenir (detay yeniden çizilip tekrar kaymasın diye).
+// Tarif verisi yoksa (yüklenemediyse) yemek.com sayfası uygulama içinde açılır.
+function tarifAc() {
+  var y = detayYemek(), slug = y && FOTO[y.ad] && FOTO[y.ad][1];
+  if (!slug) return;
+  tarifleriYukle(function () {
+    var t = TARIFLER && TARIFLER[y.ad];
+    if (t) return document.getElementById("katman").insertAdjacentHTML("beforeend", tarifEkrani(y, t));
+    yemekcomAc(y, slug);
+  });
+}
+
+function yemekcomAc(y, slug) {
+  document.getElementById("katman").insertAdjacentHTML("beforeend",
+    '<div class="sayfa tarif-sayfa"><div class="ust-bar"><button class="geri-tus" data-is="kapat">' + IKON.sol + y.ad + "</button>" +
+    '<span class="baslik-kucuk">yemek.com</span></div><div class="yukleniyor">Tarif yükleniyor…</div>' +
+    '<div class="tarif-kutu"><iframe src="https://yemek.com/tarif/' + slug + '/" title="Tarif"></iframe></div></div>');
+}
+
+// Geri: en üstteki sayfa sağa kayarak çıkar. Tarif kapanınca detay olduğu gibi kalır.
+function detayKapat() {
+  var sayfalar = document.querySelectorAll(".sayfa"), sayfa = sayfalar[sayfalar.length - 1];
+  if (!sayfa) { durum.detay = null; return ciz(); }
+  sayfa.style.webkitTransform = sayfa.style.transform = "";
+  sayfa.className += " cikis";
+  setTimeout(function () {
+    if (sayfalar.length > 1) sayfa.parentNode.removeChild(sayfa);
+    else { durum.detay = null; ciz(); }
+  }, 250);
+}
+
+// iOS gibi: sol kenardan sağa kaydırınca geri.
+(function () {
+  var x0 = null, dx = 0, sayfa = null;
+  document.addEventListener("touchstart", function (e) {
+    var hepsi = document.querySelectorAll(".sayfa");
+    sayfa = hepsi[hepsi.length - 1];
+    x0 = sayfa && e.touches[0].clientX < 28 ? e.touches[0].clientX : null;
+    dx = 0;
+  }, { passive: true });
+  document.addEventListener("touchmove", function (e) {
+    if (x0 === null) return;
+    dx = Math.max(0, e.touches[0].clientX - x0);
+    sayfa.style.webkitTransform = sayfa.style.transform = "translateX(" + dx + "px)";
+  }, { passive: true });
+  document.addEventListener("touchend", function () {
+    if (x0 === null) return;
+    x0 = null;
+    if (dx > 90) detayKapat(); else sayfa.style.webkitTransform = sayfa.style.transform = "";
+  });
+})();
+
+// --- olaylar ---
+function gorulenSil(onek) {
+  Object.keys(durum.gorulen).forEach(function (a) { if ((a.charAt(0) === "b") === (onek === "b")) delete durum.gorulen[a]; });
+}
+
+function haftaAdlari() {
+  var h = {};
+  durum.hafta.gunler.forEach(function (m) { K.forEach(function (k) { h[m[k].ad] = true; }); });
+  return h;
+}
+
+document.addEventListener("click", function (e) {
+  var el = e.target.closest ? e.target.closest("[data-is]") : null;
+  if (!el) return;
+  var is = el.getAttribute("data-is"), k = el.getAttribute("data-k"), g = el.getAttribute("data-g");
+  durum.degisen = null;
+
+  if (is === "sekme") { durum.sekme = el.getAttribute("data-s"); durum.acik = null; durum.detay = null; window.scrollTo(0, 0); }
+  else if (is === "yeniMenu") { anlik(); durum.bugun = Oneri.menu(ctx(true)); gorulenSil("b"); }
+  else if (is === "eldekiler") { anlik(); durum.eldekiler = !durum.eldekiler; durum.bugun = Oneri.menu(ctx(true)); gorulenSil("b"); }
+  else if (is === "detay") { durum.detay = { g: g, k: k }; }
+  else if (is === "kapat") { detayKapat(); return; }
+  else if (is === "tarifAc") { tarifAc(); return; }
+  else if (is === "adim") { el.classList.toggle("bitti"); return; }
+  else if (is === "baska" || is === "benzeri") {
+    e.stopPropagation();
+    var haftada = g !== null;
+    var hedef = haftada ? durum.hafta.gunler[+g] : durum.bugun;
+    var kart = haftada ? g + "-" + k : "b-" + k;
+    // Bu kartta daha önce gösterilenler, liste bitene kadar tekrar önerilmez.
+    var gor = durum.gorulen[kart] || (durum.gorulen[kart] = [hedef[k].ad]);
+    var oner = function () {
+      var haric = haftada ? haftaAdlari() : {};
+      gor.forEach(function (a) { haric[a] = true; });
+      return Oneri[is](hedef, k, ctx(!haftada), haric);
+    };
+    var yeni = oner();
+    if (!yeni) { gor.length = 0; gor.push(hedef[k].ad); yeni = oner(); }  // hepsi gösterildi: baştan
+    if (yeni) { anlik(); hedef[k] = yeni; gor.push(yeni.ad); durum.degisen = kart; }
+    if (haftada) durum.acik = kart;
+  }
+  else if (is === "ac") { var a = el.getAttribute("data-a"); durum.acik = durum.acik === a ? null : a; }
+  else if (is === "haftaYap") {
+    if (durum.hafta && !confirm("Mevcut haftalık plan silinip yenisi yapılsın mı?")) return;
+    anlik();
+    durum.hafta = { baslangic: bugunTarih().getTime(), gunler: Oneri.hafta(ctx()) };
+    durum.alinan = {}; durum.acik = null; durum.listeAcik = false; gorulenSil("hafta");
+  }
+  else if (is === "liste") { durum.listeAcik = !durum.listeAcik; }
+  else if (is === "al") { var id = el.getAttribute("data-id"); if (durum.alinan[id]) delete durum.alinan[id]; else durum.alinan[id] = true; }
+  else if (is === "paylas") {
+    var metin = Oneri.alisveris(durum.hafta.gunler, durum.kiler)
+      .filter(function (x) { return !durum.alinan[x.id]; })
+      .map(function (x) { return "• " + x.ad; }).join("\n");
+    navigator.share({ title: "Alışveriş listesi", text: "Alışveriş listesi:\n" + metin }).catch(function () {});
+    return;
+  }
+  else if (is === "kiler") {
+    var mid = el.getAttribute("data-id");
+    if (durum.kiler[mid]) delete durum.kiler[mid]; else durum.kiler[mid] = true;
+    document.getElementById("kilerListe").innerHTML = kilerListe();
+    kaydet();
+    return;
+  }
+  else if (is === "kilerBosalt") { if (!confirm("Kilerdeki tüm malzemeler silinsin mi?")) return; durum.kiler = {}; }
+  else if (is === "geri") { geriAl(); }
+  ciz();
+});
+
+document.addEventListener("input", function (e) {
+  if (e.target.id !== "ara") return;
+  durum.ara = e.target.value;
+  document.getElementById("kilerListe").innerHTML = kilerListe();
+});
+
+// Uygulama gece açık kaldıysa ya da ertesi gün öne gelirse günün menüsünü yenile.
+document.addEventListener("visibilitychange", function () {
+  if (document.hidden) return;
+  var b = oku("bugun", null);
+  if (!b || b.tarih !== bugunTarih().getTime()) { durum.bugun = Oneri.menu(ctx(true)); durum.geri = []; gorulenSil("b"); ciz(); }
+});
+
+ciz();
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(function () {});
+</script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+{
+  "name": "Ne Pişirsem?",
+  "short_name": "Yemek",
+  "lang": "tr",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#fbf6ee",
+  "theme_color": "#b5451b",
+  "icons": [{ "src": "ikon.png", "sizes": "180x180", "type": "image/png" }]
+}

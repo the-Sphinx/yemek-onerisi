@@ -1,0 +1,42 @@
+// Yemek adı -> resim/ altındaki fotoğraf (Wikimedia Commons, kaynaklar resim/KAYNAKLAR.md).
+// Listede olmayan yemeğe uygulama türüne göre bir yer tutucu gösterir.
+var RESIMLER = {
+  "Mercimek Çorbası": "mercimek-corbasi.jpg",
+  "Ezogelin Çorbası": "ezogelin-corbasi.jpg",
+  "Domates Çorbası": "domates-corbasi.jpg",
+  "Yayla Çorbası": "yayla-corbasi.jpg",
+  "Kelle Paça Çorbası": "kelle-paca-corbasi.jpg",
+  "Tarhana Çorbası": "tarhana-corbasi.jpg",
+  "Izgara Köfte": "izgara-kofte.jpg",
+  "İnegöl Köfte": "inegol-kofte.jpg",
+  "Akçaabat Köfte": "akcaabat-kofte.jpg",
+  "Tekirdağ Köftesi": "tekirdag-koftesi.jpg",
+  "Kaşarlı Köfte": "kasarli-kofte.jpg",
+  "Kuru Köfte": "kuru-kofte.jpg",
+  "Kadınbudu Köfte": "kadinbudu-kofte.jpg",
+  "İzmir Köfte": "izmir-kofte.jpg",
+  "Tepsi Kebabı": "tepsi-kebabi.jpg",
+  "Hasanpaşa Köfte": "hasanpasa-kofte.jpg",
+  "Sulu Köfte": "sulu-kofte.jpg",
+  "Ekşili Köfte": "eksili-kofte.jpg",
+  "Çökertme Kebabı": "cokertme-kebabi.jpg",
+  "Etli Kereviz": "etli-kereviz.jpg",
+  "Etli Yaprak Sarma": "etli-yaprak-sarma.jpg",
+  "Kara Lahana Sarması": "kara-lahana-sarmasi.jpg",
+  "Etli Biber Dolması": "etli-biber-dolmasi.jpg",
+  "Etli Kabak Dolması": "etli-kabak-dolmasi.jpg",
+  "Kuru Biber Dolması": "kuru-biber-dolmasi.jpg",
+  "Etli Taze Fasulye": "etli-taze-fasulye.jpg",
+  "Etli Kuru Fasulye": "etli-kuru-fasulye.jpg",
+  "Nohut Yemeği": "nohut-yemegi.jpg",
+  "Ispanak Yemeği": "ispanak-yemegi.jpg",
+  "Pirinç Pilavı": "pirinc-pilavi.jpg",
+  "Şehriyeli Pirinç Pilavı": "sehriyeli-pirinc-pilavi.jpg",
+  "Domatesli Pirinç Pilavı": "domatesli-pirinc-pilavi.jpg",
+  "İç Pilav": "ic-pilav.jpg",
+  "Şehriyeli Bulgur Pilavı": "sehriyeli-bulgur-pilavi.jpg",
+  "Mercimekli Bulgur Pilavı": "mercimekli-bulgur-pilavi.jpg",
+  "Arpa Şehriye Pilavı": "arpa-sehriye-pilavi.jpg"
+};
+
+if (typeof module !== "undefined") module.exports = RESIMLER;
