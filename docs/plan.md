@@ -85,3 +85,8 @@ Hosted on GitHub Pages, added to the home screen, works offline.
 - [x] Measured all three tabs: Bugün's title sat 14px lower (its switch row is 30px; others 16px), first content started 8px vs 4px after the header, Kiler chips at 13px vs 12px gutter
 - [x] One header structure for every tab (`baslik(title, overline, right)`, the switch goes in the right slot); `.not` top margin 8px; chip container 9px + chip 3px = 12px
 - Verified: overline y=20, title y=43, header bottom 82, first content y=90 and 12px card / 16px text gutters on all tabs; fit check still 8px spare; smoke 29/29
+
+## Release: GitHub Pages
+- [x] Public repo https://github.com/the-Sphinx/yemek-onerisi, Pages from `main` / → https://the-sphinx.github.io/yemek-onerisi/
+- [x] Commits as Gorkem Erinc <gerinc@gmail.com> (repo-local config); `.claude/` ignored; `.nojekyll`
+- Verified live: Pages build is the pushed commit, served files match local md5, 3 cards render, service worker active, recipe page opens, app and recipe still open offline
